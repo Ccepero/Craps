@@ -1,52 +1,47 @@
 #!/usr/bin/env python
-
+from sys import path
 from die import * 
 import sys
 from os import path
 import crapsResources_rc
 from time import sleep
-from PyQt5.QtCore import pyqtSlot, QSettings, QCoreApplication, Qt
+from logging import basicConfig, getLogger, DEBUG, INFO, CRITICAL
+from pickle import dump, load
+from PyQt5.QtCore import pyqtSlot, QSettings, QCoreApplication, Qt, QTimer
 from PyQt5 import QtGui, uic
 from PyQt5.QtWidgets import  QMainWindow, QApplication, QDialog, QMessageBox
 
 startingBankDefault = 100
 maximumBetDefault = 100
 minimumBetDefault = 10
-logFileNameDefault = 'logFile.lg'
+logFileNameDefault = 'dice.log'
+pickleFileNameDefault = ".crapsSavedObjects.pl"
 
 class Dice(QMainWindow) :
     """A game of Craps."""
     die1 = die2 = None
 
     def __init__( self, parent=None ):
-        super().__init__(parent)
-        self.appSettings = QSettings()
-        uic.loadUi('Craps.ui', self)
-        if self.appSettings.contains('logFile'):
-            self.logFileName = self.appSettings.value('logFile', type=str)
-        else:
-            self.logFileName = "dice.log"
-            self.logFile.setText(self.logFileName)
 
-        self.die1 = Die()
-        self.die2 = Die()
-        self.firstRoll = True
-        self.lastRoll = 0
-        self.winsCount = 0
-        self.lossesCOunt = 0
-        self.rollAmt = 0
-        self.bankAmount = 1000
-        self.buttonText = "roll"
-        uic.loadUi("Craps.ui", self)
-        self.bidSpinBox.setRange ( 10, 100 )
-        self.bidSpinBox.setSingleStep ( 5 )
-        self.lossesLabel.setText("")
-             #          0  1  2  3  4    5    6    7    8    9    10   11   12
-        self.payout = {4: 2, 5: 1.5, 6: 1.2, 8: 1.2, 9: 1.5, 10: 1.2}
+        super().__init__(parent)
+
+        self.logger = getLogger("Cepero.craps")
+        self.appSettings = QSettings()
+        self.quitCounter = 0; #used in a workaround for a QT5 Bug.
+
+        uic.loadUi('Craps.ui', self)
+
+        self.payouts = {4: 2, 5: 1.5, 6: 1.2, 8: 1.2, 9: 1.5, 10: 1.2}
+        self.pickleFileName = pickleFileNameDefault
+        self.restoreSettings()
+
+        if path.exists(self.pickleFileName):
+            self.die1, self.die2, self.firstRoll, self.lastRoll, self.winsCount, self.lossesCOunt, self.rollAmt, self.bankAmount, self.buttonText = self.restoreGame()
+        else:
+            self.restartGame()
+
         self.rollButton.clicked.connect(self.rollButtonClickedHandler)
         self.preferencesSelectButton.clicked.connect(self.preferencesSelectButtonClickedHandler)
-
-        self.updateUI()
 
     def __str__( self ):
         """String representation for Dice.
@@ -66,6 +61,35 @@ class Dice(QMainWindow) :
             self.rollingForLabel.setText(str(self.lastRoll))
         self.bankValue.setText(str(self.bankAmount))
 
+    def restartGame(self):
+        self.die1 = Die()
+        self.die2 = Die()
+        self.firstRoll = True
+        self.lastRoll = 0
+        self.winsCount = 0
+        self.lossesCOunt = 0
+        self.rollAmt = 0
+        self.bankAmount = 1000
+        self.buttonText = "roll"
+        self.bidSpinBox.setRange ( 10, 100 )
+        self.bidSpinBox.setSingleStep ( 5 )
+        self.lossesLabel.setText("")
+        uic.loadUi("Craps.ui", self)
+
+    def saveGame(self):
+        saveItems = ( self.die1, self.die2, self.firstRoll, self.lastRoll, self.winsCount, self.lossesCOunt, self.rollAmt, self.bankAmount, self.buttonText)
+        if self.appSettings.contains('pickleFileName'):
+            with open(path.join(path.dirname(path.realpath(__file__)), self.appSettings.value('pickleFileName', type= str)), 'wb') as pickleFile:
+                dump(saveItems, pickleFile)
+        else:
+            self.logger.critical("No pickle Filename")
+    def restoreGame(self):
+        if self.appSettings.contains('pickleFileName'):
+            self.appSettings.value('pickleFileName', type = str)
+            with open(path.join(path.dirname(path.realpath(__file__)), self.appSettings.value('pickleFileName', type= str)), 'rb') as pickleFile:
+                return load(pickleFile)
+        else:
+            self.logger.critical("No pickle Filename")
     def restoreSettings(self):
         if self.appSettings.contains('startingBank'):
             self.startingBank = self.appSettings.value('startingBank', type=int)
@@ -151,6 +175,20 @@ class Dice(QMainWindow) :
         self.restoreSettings()
         self.updateUI()
 
+    @pyqtSlot() #Player asked to quite game
+    def closeEvent(self, event):
+        if self.quitCounter == 0:
+            self.quitCounter += 1
+            quitMessage = "Are you sure you want to quit?"
+            reply = QMessageBox.question(self, 'Message', quitMessage, QMessageBox.Yes, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                self.saveGame()
+                event.accept()
+            else:
+                event.ignore()
+            return super().closeEvent(event)
+
 
 class PreferencesDialog(QDialog):
     def __init__(self, parent = Dice):
@@ -232,6 +270,14 @@ if __name__ == "__main__":
     QCoreApplication.setOrganizationDomain("cindalissoftware.com");
     QCoreApplication.setApplicationName("Craps");
     appSettings = QSettings()
+    startingFolderName = path.dirname(path.realpath(__file__))
+    if appSettings.contains('logFile'):
+        logFileName = appSettings.value('logFile', type= str)
+    else:
+        logFileName = logFileNameDefault
+        appSettings.setValue('logFile', logFileName)
+        basicConfig(filename= path.join(startingFolderName, logFileName), level=INFO, format='%(asctime)s %(name)-8s %(levelName)-8s %(message)s')
+
     app = QApplication(sys.argv)
     diceApp = Dice()
     diceApp.updateUI()
