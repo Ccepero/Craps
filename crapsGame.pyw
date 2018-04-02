@@ -25,7 +25,7 @@ class Dice(QMainWindow) :
 
         super().__init__(parent)
 
-        self.logger = getLogger("Cepero.craps")
+        self.logger = getLogger("dice")
         self.appSettings = QSettings()
         self.quitCounter = 0; #used in a workaround for a QT5 Bug.
 
@@ -41,7 +41,9 @@ class Dice(QMainWindow) :
             self.restartGame()
 
         self.rollButton.clicked.connect(self.rollButtonClickedHandler)
+        self.bailButton.clicked.connect(self.bailButtonClickedHandler)
         self.preferencesSelectButton.clicked.connect(self.preferencesSelectButtonClickedHandler)
+        self.restartButton.clicked.connect(self.restartButtonClickedHandler)
 
     def __str__( self ):
         """String representation for Dice.
@@ -74,7 +76,6 @@ class Dice(QMainWindow) :
         self.bidSpinBox.setRange ( 10, 100 )
         self.bidSpinBox.setSingleStep ( 5 )
         self.lossesLabel.setText("")
-        uic.loadUi("Craps.ui", self)
 
     def saveGame(self):
         saveItems = ( self.die1, self.die2, self.firstRoll, self.lastRoll, self.winsCount, self.lossesCOunt, self.rollAmt, self.bankAmount, self.buttonText)
@@ -113,6 +114,7 @@ class Dice(QMainWindow) :
             self.appSettings.setValue('createLogFile', self.createLogFile)
 #set a break point before restore settings and look at all variables and they should have the values that you just changed.
     def saveSettings(self):
+        self.logger.info("starting saveSettings")
         if self.appSettings.contains('startingBank'):
             self.startingBank = self.appSettings.value('startingBank', type=int)
         else:
@@ -135,6 +137,8 @@ class Dice(QMainWindow) :
             self.appSettings.setValue('createLogFile', self.createLogFile)
 
 
+
+
     @pyqtSlot()
     # Player asked for another roll of the dice.
     def rollButtonClickedHandler ( self ):
@@ -145,24 +149,42 @@ class Dice(QMainWindow) :
                 self.resultsLabel.setText("You win!")
                 self.winsCount += 1
                 self.bankAmount += self.currentBet
+                self.firstRoll = True
+                self.bailButton.setEnabled(False)
             elif self.valueRolled in (2, 3, 12):
                 self.resultsLabel.setText("You lose!")
                 self.lossesCOunt += 1
                 self.bankAmount -= self.currentBet
+                self.firstRoll = True
+                self.bailButton.setEnabled(False)
             else:
                 self.firstRoll = False
                 self.resultsLabel.setText("Roll again")
                 self.lastRoll = self.valueRolled
+                self.bailButton.setEnabled(True)
         else:
             if self.valueRolled == self.lastRoll:
                 self.resultsLabel.setText("You Win!!")
                 self.winsCount += 1
-                self.bankAmount += (1 - self.payout[self.valueRolled]) * self.currentBet
+                self.bankAmount += (1 - self.payouts[self.valueRolled]) * self.currentBet
+                self.firstRoll = True
+                self.bailButton.setEnabled(False)
             else:
                 self.resultsLabel.setText("You lose!!")
                 self.lossesCOunt += 1
                 self.bankAmount -= self.currentBet
-            self.firstRoll = True
+                self.firstRoll = True
+                self.bailButton.setEnabled(False)
+        self.updateUI()
+
+    @pyqtSlot()
+    def bailButtonClickedHandler(self):
+        self.lossesCOunt += 1
+        self.bankAmount -= self.currentBet
+        self.firstRoll = True
+        self.rollAmt = "Bailed!"
+        self.bailButton.setEnabled(False)
+        #self.buttonText = "Roll"
         self.updateUI()
 
 
@@ -173,6 +195,12 @@ class Dice(QMainWindow) :
         preferencesDialog.show()
         preferencesDialog.exec_()
         self.restoreSettings()
+        self.updateUI()
+
+    @pyqtSlot()
+    def restartButtonClickedHandler(self):
+        self.restartGame()
+        self.saveGame()
         self.updateUI()
 
     @pyqtSlot() #Player asked to quite game
@@ -193,6 +221,7 @@ class Dice(QMainWindow) :
 class PreferencesDialog(QDialog):
     def __init__(self, parent = Dice):
         super(PreferencesDialog, self).__init__()
+        self.logger = getLogger("dice")
 
         uic.loadUi('PreferencesDialog.ui', self)
         self.appSettings = QSettings()
@@ -276,7 +305,7 @@ if __name__ == "__main__":
     else:
         logFileName = logFileNameDefault
         appSettings.setValue('logFile', logFileName)
-        basicConfig(filename= path.join(startingFolderName, logFileName), level=INFO, format='%(asctime)s %(name)-8s %(levelName)-8s %(message)s')
+    basicConfig(filename= path.join(startingFolderName, logFileName), level=INFO, format='%(asctime)s %(name)-8s %(levelName)-8s %(message)s')
 
     app = QApplication(sys.argv)
     diceApp = Dice()
