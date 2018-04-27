@@ -84,6 +84,7 @@ class Dice(QMainWindow) :
                 dump(saveItems, pickleFile)
         else:
             self.logger.critical("No pickle Filename")
+
     def restoreGame(self):
         if self.appSettings.contains('pickleFileName'):
             self.appSettings.value('pickleFileName', type = str)
@@ -91,6 +92,7 @@ class Dice(QMainWindow) :
                 return load(pickleFile)
         else:
             self.logger.critical("No pickle Filename")
+            
     def restoreSettings(self):
         if self.appSettings.contains('startingBank'):
             self.startingBank = self.appSettings.value('startingBank', type=int)
@@ -166,13 +168,13 @@ class Dice(QMainWindow) :
             if self.valueRolled == self.lastRoll:
                 self.resultsLabel.setText("You Win!!")
                 self.winsCount += 1
-                self.bankAmount += self.payouts[self.valueRolled] * self.currentBet
+                self.bankAmount += round(self.payouts[self.last] * self.currentBet)
                 self.firstRoll = True
                 self.bailButton.setEnabled(False)
             else:
                 self.resultsLabel.setText("You lose!!")
                 self.lossesCOunt += 1
-                self.bankAmount -= self.payouts[self.valueRolled] * self.currentBet
+                self.bankAmount -= round(self.payouts[self.lastRoll] * self.currentBet)
                 self.firstRoll = True
                 self.bailButton.setEnabled(False)
         self.updateUI()
