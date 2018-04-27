@@ -166,13 +166,13 @@ class Dice(QMainWindow) :
             if self.valueRolled == self.lastRoll:
                 self.resultsLabel.setText("You Win!!")
                 self.winsCount += 1
-                self.bankAmount += (1 - self.payouts[self.valueRolled]) * self.currentBet
+                self.bankAmount += self.payouts[self.valueRolled] * self.currentBet
                 self.firstRoll = True
                 self.bailButton.setEnabled(False)
             else:
                 self.resultsLabel.setText("You lose!!")
                 self.lossesCOunt += 1
-                self.bankAmount -= self.currentBet
+                self.bankAmount -= self.payouts[self.valueRolled] * self.currentBet
                 self.firstRoll = True
                 self.bailButton.setEnabled(False)
         self.updateUI()
