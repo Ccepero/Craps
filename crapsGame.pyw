@@ -115,9 +115,9 @@ class Dice(QMainWindow) :
             self.createLogFile= logFileNameDefault
             self.appSettings.setValue('createLogFile', self.createLogFile)
         if self.appSettings.contains('createPickleFile'):
-            self.createPickleFile=appSettings.value('createPickleFile',type=bool)
+            self.pickleFileName=appSettings.value('createPickleFile',type=bool)
         else:
-            self.createPickleFile= pickleFileNameDefault
+            self.pickleFileName= pickleFileNameDefault
             self.appSettings.setValue('createPickleFile', self.createPickleFile)
 #set a break point before restore settings and look at all variables and they should have the values that you just changed.
     def saveSettings(self):
@@ -143,9 +143,9 @@ class Dice(QMainWindow) :
             self.createLogFile= logFileNameDefault
             self.appSettings.setValue('createLogFile', self.createLogFile)
         if self.appSettings.contains('createPickleFile'):
-            self.createPickleFile=appSettings.value('createPickleFile',type=bool)
+            self.pickleFileName=appSettings.value('createPickleFile',type=bool)
         else:
-            self.createPickleFile= pickleFileNameDefault
+            self.pickleFileName= pickleFileNameDefault
             self.appSettings.setValue('createPickleFile', self.createPickleFile)
 
 
