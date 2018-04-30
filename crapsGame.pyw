@@ -114,6 +114,11 @@ class Dice(QMainWindow) :
         else:
             self.createLogFile= logFileNameDefault
             self.appSettings.setValue('createLogFile', self.createLogFile)
+        if self.appSettings.contains('createPickleFile'):
+            self.createPickleFile=appSettings.value('createPickleFile',type=bool)
+        else:
+            self.createPickleFile= pickleFileNameDefault
+            self.appSettings.setValue('createPickleFile', self.createPickleFile)
 #set a break point before restore settings and look at all variables and they should have the values that you just changed.
     def saveSettings(self):
         self.logger.info("starting saveSettings")
@@ -137,6 +142,11 @@ class Dice(QMainWindow) :
         else:
             self.createLogFile= logFileNameDefault
             self.appSettings.setValue('createLogFile', self.createLogFile)
+        if self.appSettings.contains('createPickleFile'):
+            self.createPickleFile=appSettings.value('createPickleFile',type=bool)
+        else:
+            self.createPickleFile= pickleFileNameDefault
+            self.appSettings.setValue('createPickleFile', self.createPickleFile)
 
 
 
@@ -168,7 +178,7 @@ class Dice(QMainWindow) :
             if self.valueRolled == self.lastRoll:
                 self.resultsLabel.setText("You Win!!")
                 self.winsCount += 1
-                self.bankAmount += round(self.payouts[self.last] * self.currentBet)
+                self.bankAmount += round(self.payouts[self.lastRoll] * self.currentBet)
                 self.firstRoll = True
                 self.bailButton.setEnabled(False)
             else:
